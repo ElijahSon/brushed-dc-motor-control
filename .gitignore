@@ -1,0 +1,25 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Editors
+.vscode/
+.idea/
+
+# OS junk
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Generated data. Figures are committed on purpose: they are the evidence and
+# GitHub renders them. Large numeric traces are not, they regenerate from code.
+results/*.csv
+*.npz

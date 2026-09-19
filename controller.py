@@ -15,7 +15,6 @@ Conventions: speeds in rad/s, voltages in V, gains in V per rad/s.
 
 Author: Fils Elie Boungoueres
 """
-
 def proportional_controller(reference_angular_velocity: float, measured_angular_velocity: float, Kp: float, voltage_limit: float) -> float:
     """Return the saturated armature voltage for a proportional control law.
 
@@ -64,17 +63,19 @@ class ProportionalIntegralController:
         Ki              integral gain                   [V/rad]
         dt              control period                  [s]
         voltage_limit   supply limit, both polarities   [V]
+        anti_windup     whether to enable anti-windup   [bool]
 
     Attributes:
         integral_error        accumulated error, sum of e * dt  [rad]
     """
-    def __init__(self, Kp: float, Ki: float, dt: float, voltage_limit: float):
+    def __init__(self, Kp: float, Ki: float, dt: float, voltage_limit: float, anti_windup: bool = True):
         """Initialize the PI controller with gains, time step, and voltage limit."""
         self.Kp = Kp
         self.Ki = Ki
         self.dt = dt
         self.voltage_limit = voltage_limit
         self.integral_error = 0.0  # Initialize the integral of the error
+        self.anti_windup = anti_windup
 
     def update(self, reference_angular_velocity: float, measured_angular_velocity: float) -> float:
         """Advance the controller one step and return the armature voltage.
@@ -88,10 +89,16 @@ class ProportionalIntegralController:
         Returns the saturated voltage to apply [V].
         """
         error = reference_angular_velocity - measured_angular_velocity
-        self.integral_error += error * self.dt  # Update the integral of the error
-        control_voltage = self.Kp * error + self.Ki * self.integral_error
 
-        # Apply voltage limit
+        tentative = self.Kp * error + self.Ki * self.integral_error
+        saturating_high = tentative > self.voltage_limit and error > 0
+        saturating_low  = tentative < -self.voltage_limit and error < 0
+
+        blocked = self.anti_windup and (saturating_high or saturating_low)
+        if not blocked:
+            self.integral_error += error * self.dt
+
+        control_voltage = self.Kp * error + self.Ki * self.integral_error
         control_voltage = max(-self.voltage_limit, min(self.voltage_limit, control_voltage))
         return control_voltage
     
